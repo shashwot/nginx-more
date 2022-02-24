@@ -15,15 +15,13 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-
-    # - uses: actions/checkout@v2
     - name: Build and Push Docker Image
       uses: mr-smithers-excellent/docker-build-push@v5
       with:
         image: shashwot/nginx-more
         tags: $(git log -n1 --date=format:'%y%m%d-' --format=%cd%h)
         registry: docker.io
-        dockerfile: Dockerfile
+        dockerfile: .
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         buildArgs: VARIABLE="$(git log -n1 --date=format:'%y%m%d-' --format=%cd%h)"
