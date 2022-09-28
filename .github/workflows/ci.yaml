@@ -1,16 +1,10 @@
-name: Nginx Build
+name: Manual Nginx Build
 
 on:
   workflow_dispatch:
     inputs:
-      branch_to_build:
-        type: choice
-        required: true
-        description: branch to build
-        options:
-        - main
-        - dev
-        default: main
+      environment:
+        type: environment
 
 jobs:
   build:
@@ -20,9 +14,8 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
+
     - uses: actions/checkout@v2
-      with:
-        ref: ${{ github.event.inputs.branch_to_build }}
 
     - name: Build and Push Docker Image
       uses: mr-smithers-excellent/docker-build-push@v5
