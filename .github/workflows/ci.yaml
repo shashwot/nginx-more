@@ -1,14 +1,19 @@
 name: Nginx Build
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      branch_to_build:
+        type: choice
+        required: true
+        description: branch to build
+        options:
+        - main
+        - dev
+        default: main
 
 jobs:
   build:
-
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
@@ -16,6 +21,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.inputs.branch_to_build }}
+
     - name: Build and Push Docker Image
       uses: mr-smithers-excellent/docker-build-push@v5
       with:
