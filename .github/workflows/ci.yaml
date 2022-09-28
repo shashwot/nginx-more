@@ -3,8 +3,13 @@ name: Manual Nginx Build
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        type: environment
+      release_type:
+        type: choice
+        required: true
+        description: type of release (minor or major)
+        options:
+        - prerelease
+        default: prerelease
 
 jobs:
   build:
