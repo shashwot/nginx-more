@@ -2,13 +2,8 @@
 
 |  `software`  |      `version`      |
 | :----------: | :-----------------: |
-| `nginx-more` |      `1.20.2`       |
-|    `rhel`    |      `8`            |
-
-# Supported tags
-####  latest , 1.20.0 , 1.20.0-c8
-
-#### 1.16.1, 1.16.1-c7
+| `nginx-more` |      `1.24.0`       |
+|    `rhel`    |      `9`            |
  
 
 # How to run
