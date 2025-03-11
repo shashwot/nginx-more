@@ -1,46 +1,83 @@
-name: Auto Release Patch Version
+name: Create Tag and Release
 
 on:
-  push:
+  pull_request:
     branches:
       - main
+    types:
+      - closed
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Enter the new version (e.g., 2.0.5)"
+        required: false
+        type: string
 
 jobs:
   release:
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository (fetch all tags)
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Ensures all tags are available
+
+      - name: Fetch all tags
+        run: git fetch --tags
 
       - name: Get latest tag
         id: get_tag
         run: |
-          # Fetch all tags
           git fetch --tags
-          # Get the latest tag
-          LATEST_TAG=$(git describe --tags --abbrev=0)
-          echo "Latest tag: $LATEST_TAG"
-          # Increment the patch version
-          NEW_TAG=$(echo $LATEST_TAG | awk -F. '{printf("%d.%d.%d", $1, $2, $3+1)}')
-          echo "New tag: $NEW_TAG"
-          # Set outputs for use in later steps
-          echo "::set-output name=latest_tag::$LATEST_TAG"
-          echo "::set-output name=new_tag::$NEW_TAG"
+          latest_tag=$(git tag --sort=-v:refname | head -n 1)
+          if [[ -z "$latest_tag" ]]; then
+            latest_tag="v0.0.0"
+          fi
+          echo "Latest tag: $latest_tag"
+          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
+
+      # - name: Get latest tag
+      #   id: get_tag
+      #   run: |
+      #     latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+      #     echo "Latest tag: $latest_tag"
+      #     echo "latest_tag=$latest_tag" >> $GITHUB_ENV
+
+      - name: Determine new version
+        id: set_version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            new_version="v${{ github.event.inputs.version }}"
+          else
+            latest_tag=${{ env.latest_tag }}
+            IFS='.' read -r -a version_parts <<< "${latest_tag#v}"
+            major=${version_parts[0]}
+            minor=${version_parts[1]}
+            patch=${version_parts[2]}
+            new_version="v$major.$minor.$((patch + 1))"
+          fi
+          
+          if [[ ! "$new_version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version format: $new_version"
+            exit 1
+          fi
+
+          echo "New version: $new_version"
+          echo "new_tag=$new_version" >> $GITHUB_ENV
 
       - name: Create new tag
         run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git tag ${{ steps.get_tag.outputs.new_tag }}
-          git push origin ${{ steps.get_tag.outputs.new_tag }}
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ env.new_tag }}
+          git push origin ${{ env.new_tag }}
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.get_tag.outputs.new_tag }}
-          release_name: Release ${{ steps.get_tag.outputs.new_tag }}
+          tag_name: ${{ env.new_tag }}
+          name: Release ${{ env.new_tag }}
           draft: false
           prerelease: false
+          body: "Release for version ${{ env.new_tag }}"
