@@ -10,15 +10,10 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      release_type:
-        description: "Type of release (major, minor, patch)"
+      version:
+        description: "Enter the new version (e.g., 2.0.5)"
         required: true
-        default: "patch"
-        type: choice
-        options:
-          - major
-          - minor
-          - patch
+        type: string
 
 jobs:
   release:
@@ -29,45 +24,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get latest tag
-        id: get_tag
+      - name: Validate version format
+        id: validate_version
         run: |
-          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.1")
-          echo "Latest tag: $latest_tag"
-          echo "latest_tag=$latest_tag" >> $GITHUB_ENV
-
-      - name: Determine new version
-        id: bump_version
-        run: |
-          latest_tag=${{ env.latest_tag }}
-          IFS='.' read -r -a version_parts <<< "${latest_tag#v}"
-          major=${version_parts[0]}
-          minor=${version_parts[1]}
-          patch=${version_parts[2]}
-
-          release_type="${{ github.event.inputs.release_type }}"
-          if [ -z "$release_type" ]; then
-            release_type="patch"
+          version="${{ github.event.inputs.version }}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version format. Use format: X.Y.Z (e.g., 2.0.5)"
+            exit 1
           fi
-
-          case "$release_type" in
-            major)
-              new_tag="v$((major + 1)).0.0"
-              ;;
-            minor)
-              new_tag="v$major.$((minor + 1)).0"
-              ;;
-            patch)
-              new_tag="v$major.$minor.$((patch + 1))"
-              ;;
-            *)
-              echo "Invalid release type: $release_type"
-              exit 1
-              ;;
-          esac
-
-          echo "New tag: $new_tag"
-          echo "new_tag=$new_tag" >> $GITHUB_ENV
+          echo "new_tag=v$version" >> $GITHUB_ENV
 
       - name: Create new tag
         run: |
@@ -83,4 +48,5 @@ jobs:
           name: Release ${{ env.new_tag }}
           draft: false
           prerelease: false
-          body: "Automated release for ${{ env.new_tag }}"
+          body: "Manual release for version ${{ env.new_tag }}"
+
