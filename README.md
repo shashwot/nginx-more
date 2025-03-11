@@ -8,7 +8,7 @@
 
 # How to run
 ```
-$ docker container run --name nginx --publish 80:80 --publish 443:443 -d shashwot/nginx-more:latest 
+$ docker container run --name nginx --publish 80:80 --publish 443:443 -d shashwot/nginx-more:latest
 ```
 
 # What is nginx-more
